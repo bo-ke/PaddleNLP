@@ -631,6 +631,8 @@ class Trainer:
                     )
                     train_dataloader.batch_sampler.set_epoch(consumed_samples=consumed_samples)
                     logger.info(f"Set DistributedBatchSampler consumed_samples to {consumed_samples}")
+        elif resume_from_checkpoint is not None:
+            raise ValueError("trainer_state file not found")
 
         epoch_iterator = train_dataloader
         # steps_in_epoch = len(epoch_iterator)
@@ -908,7 +910,10 @@ class Trainer:
 
     def _set_state_dict_in_model(self, state_dict):
         # TODO  @ZHUI paddle need return the results of set_state_dict.
-        logger.info(f"set state-dict :{self.model.set_state_dict(state_dict)}")
+        missing_keys, unexpected_keys = self.model.set_state_dict(state_dict)
+        if missing_keys or unexpected_keys:
+            raise ValueError(f"set state-dict error, Missing keys: {missing_keys} Unexpected_keys: {unexpected_keys}")
+        logger.info(f"set state-dict")
 
     def _maybe_log_save_evaluate(self, tr_loss, model, epoch, ignore_keys_for_eval, **kwargs):
         if self.control.should_log:
